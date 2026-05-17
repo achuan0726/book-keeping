@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="記帳本">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1D9E75">
+<title>澳洲記帳本</title>
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231D9E75'/><text y='68' x='50' text-anchor='middle' font-size='55' fill='white'>💰</text></svg>">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.10.0/dist/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --green: #1D9E75;
+    --green-light: #E1F5EE;
+    --green-dark: #0F6E56;
+    --red: #E24B4A;
+    --red-light: #FCEBEB;
+    --red-dark: #A32D2D;
+    --blue: #185FA5;
+    --blue-light: #E6F1FB;
+    --amber: #BA7517;
+    --purple: #7F77DD;
+    --coral: #D85A30;
+    --pink: #D4537E;
+    --gray: #888780;
+    --bg: #ffffff;
+    --bg2: #f5f5f3;
+    --bg3: #eeede8;
+    --text: #1a1a1a;
+    --text2: #6b6b68;
+    --text3: #a0a09c;
+    --border: rgba(0,0,0,0.1);
+    --border2: rgba(0,0,0,0.18);
+    --radius: 10px;
+    --radius-lg: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1e;
+      --bg2: #2c2c2e;
+      --bg3: #3a3a3c;
+      --text: #f5f5f5;
+      --text2: #a0a09c;
+      --text3: #6b6b68;
+      --border: rgba(255,255,255,0.1);
+      --border2: rgba(255,255,255,0.18);
+      --green-light: #0a3d2b;
+      --red-light: #3d1010;
+      --blue-light: #0a1f3d;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); max-width: 480px; margin: 0 auto; min-height: 100vh; padding-bottom: 80px; }
+  
+  /* Tab bar */
+  .tab-bar { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: var(--bg); border-top: 0.5px solid var(--border); display: flex; z-index: 100; padding-bottom: env(safe-area-inset-bottom); }
+  .tab-btn { flex: 1; padding: 10px 4px 8px; text-align: center; cursor: pointer; border: none; background: transparent; color: var(--text3); font-size: 10px; display: flex; flex-direction: column; align-items: center; gap: 3px; transition: color .15s; }
+  .tab-btn i { font-size: 22px; }
+  .tab-btn.active { color: var(--green); }
+
+  /* Screens */
+  .screen { display: none; padding: 16px; }
+  .screen.active { display: block; }
+
+  /* Header */
+  .page-header { font-size: 22px; font-weight: 700; margin-bottom: 16px; padding-top: 8px; }
+
+  /* Month tabs */
+  .month-tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 16px; scrollbar-width: none; }
+  .month-tabs::-webkit-scrollbar { display: none; }
+  .month-tab { padding: 6px 14px; border-radius: 20px; font-size: 13px; cursor: pointer; border: 0.5px solid var(--border2); background: var(--bg2); color: var(--text2); white-space: nowrap; flex-shrink: 0; }
+  .month-tab.active { background: var(--green); color: white; border-color: var(--green); font-weight: 500; }
+
+  /* Person cards */
+  .person-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .person-card { background: var(--bg2); border-radius: var(--radius-lg); padding: 14px; }
+  .person-card .who { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600; margin-bottom: 10px; }
+  .who-ash { background: var(--green-light); color: var(--green-dark); }
+  .who-mathew { background: var(--blue-light); color: var(--blue); }
+  .stat-line { display: flex; justify-content: space-between; align-items: baseline; padding: 4px 0; border-bottom: 0.5px solid var(--border); }
+  .stat-line:last-of-type { border-bottom: none; }
+  .stat-label { font-size: 11px; color: var(--text2); }
+  .stat-val { font-size: 13px; font-weight: 600; }
+  .stat-twd { font-size: 10px; color: var(--text3); display: block; text-align: right; }
+  .net-line { display: flex; justify-content: space-between; align-items: baseline; padding-top: 8px; margin-top: 6px; border-top: 1px solid var(--border2); }
+  .net-label { font-size: 13px; font-weight: 600; color: var(--text); }
+  .net-val { font-size: 18px; font-weight: 700; }
+  .col-green { color: var(--green); }
+  .col-red { color: var(--red); }
+
+  /* Section */
+  .section-title { font-size: 12px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 10px; }
+
+  /* Cat bars */
+  .cat-bar { margin-bottom: 10px; }
+  .cat-bar-header { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; }
+  .bar-track { height: 6px; background: var(--bg3); border-radius: 3px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 3px; transition: width .4s; }
+
+  /* Chart */
+  .chart-wrap { position: relative; width: 100%; height: 180px; margin-bottom: 20px; }
+
+  /* Transaction list */
+  .tx-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg2); border-radius: var(--radius); margin-bottom: 8px; }
+  .tx-icon { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; }
+  .tx-info { flex: 1; min-width: 0; }
+  .tx-name { font-size: 14px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tx-meta { font-size: 11px; color: var(--text2); margin-top: 2px; display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+  .tx-amount { text-align: right; flex-shrink: 0; }
+  .tx-aud { font-size: 14px; font-weight: 600; }
+  .tx-twd { font-size: 11px; color: var(--text3); }
+
+  /* Filters */
+  .filter-row { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 12px; scrollbar-width: none; }
+  .filter-row::-webkit-scrollbar { display: none; }
+  .filter-btn { padding: 6px 14px; border-radius: 20px; font-size: 12px; cursor: pointer; border: 0.5px solid var(--border2); background: var(--bg2); color: var(--text2); white-space: nowrap; flex-shrink: 0; font-weight: 500; }
+  .filter-btn.active { background: var(--green); color: white; border-color: var(--green); }
+
+  /* Form */
+  .form-card { background: var(--bg2); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 16px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .form-group { margin-bottom: 12px; }
+  .form-group label { font-size: 12px; color: var(--text2); display: block; margin-bottom: 5px; font-weight: 500; }
+  .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 11px 12px; font-size: 15px; border: 0.5px solid var(--border2); border-radius: var(--radius); background: var(--bg); color: var(--text); -webkit-appearance: none; }
+  .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--green); }
+  .btn-type { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+  .type-btn { padding: 10px; border-radius: var(--radius); font-size: 14px; font-weight: 600; cursor: pointer; border: 1.5px solid var(--border2); background: var(--bg); color: var(--text2); text-align: center; transition: all .15s; }
+  .type-btn.active-exp { background: var(--red-light); color: var(--red-dark); border-color: var(--red); }
+  .type-btn.active-inc { background: var(--green-light); color: var(--green-dark); border-color: var(--green); }
+  .btn-submit { width: 100%; padding: 14px; border-radius: var(--radius); font-size: 16px; font-weight: 700; cursor: pointer; background: var(--green); color: white; border: none; margin-top: 4px; }
+  .btn-submit:active { opacity: 0.85; transform: scale(0.98); }
+
+  /* Receipt */
+  .upload-zone { border: 2px dashed var(--border2); border-radius: var(--radius-lg); padding: 32px 20px; text-align: center; cursor: pointer; background: var(--bg2); }
+  .upload-zone:active { background: var(--bg3); }
+  .upload-zone input { display: none; }
+  .receipt-img-wrap { border-radius: var(--radius); overflow: hidden; max-height: 220px; display: flex; align-items: center; justify-content: center; background: var(--bg3); margin-bottom: 12px; }
+  .receipt-img-wrap img { max-width: 100%; max-height: 220px; object-fit: contain; }
+  .spinner { width: 24px; height: 24px; border: 2px solid var(--border2); border-top-color: var(--green); border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto 10px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .item-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .item-row input { padding: 9px 10px; font-size: 14px; border: 0.5px solid var(--border2); border-radius: var(--radius); background: var(--bg); color: var(--text); }
+  .item-row .item-name { flex: 1; }
+  .item-row .item-price { width: 80px; }
+  .del-btn { width: 30px; height: 30px; border-radius: 50%; border: 0.5px solid var(--border2); background: var(--bg3); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--text2); font-size: 14px; }
+  .mode-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+  .mode-btn { padding: 10px; border-radius: var(--radius); font-size: 13px; cursor: pointer; border: 1.5px solid var(--border2); background: var(--bg); color: var(--text2); text-align: center; font-weight: 500; }
+  .mode-btn.active { background: var(--blue-light); color: var(--blue); border-color: var(--blue); }
+  .btn-add-item { width: 100%; padding: 10px; border-radius: var(--radius); font-size: 14px; cursor: pointer; border: 1.5px dashed var(--border2); background: transparent; color: var(--text2); margin-bottom: 10px; }
+  .items-total { display: flex; justify-content: space-between; padding: 10px 0 0; border-top: 0.5px solid var(--border); margin-top: 4px; }
+
+  /* Price DB */
+  .price-card { background: var(--bg2); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 10px; }
+  .price-card-title { font-size: 14px; font-weight: 600; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+  .saving-badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: var(--green-light); color: var(--green-dark); font-weight: 600; }
+  .store-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 0.5px solid var(--border); }
+  .store-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .store-name { font-size: 13px; color: var(--text2); }
+  .store-price { font-size: 14px; font-weight: 600; }
+  .badge { display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 8px; margin-left: 5px; font-weight: 600; }
+  .badge-cheap { background: var(--green-light); color: var(--green-dark); }
+  .badge-exp { background: var(--red-light); color: var(--red-dark); }
+  .tip-row { display: flex; align-items: center; gap: 10px; padding: 12px; background: var(--bg2); border-radius: var(--radius); margin-bottom: 8px; }
+  .tip-text { font-size: 13px; color: var(--text); }
+
+  /* Empty */
+  .empty-state { text-align: center; padding: 48px 20px; color: var(--text3); }
+  .empty-state i { font-size: 40px; display: block; margin-bottom: 10px; }
+
+  /* Toast */
+  .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 10px 20px; border-radius: 20px; font-size: 14px; z-index: 999; opacity: 0; transition: opacity .3s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+
+  /* Legend */
+  .chart-legend { display: flex; gap: 14px; margin-bottom: 8px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text2); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<div id="screen-overview" class="screen active">
+  <div class="page-header">總覽 <span id="overview-month-label" style="font-size:14px;font-weight:400;color:var(--text2)"></span></div>
+  <div class="month-tabs" id="month-tabs"></div>
+  <div class="person-cards">
+    <div class="person-card" id="ash-card"></div>
+    <div class="person-card" id="mathew-card"></div>
+  </div>
+  <div class="section-title">支出分類</div>
+  <div id="cat-bars" style="margin-bottom:20px"></div>
+  <div class="section-title">月支出趨勢</div>
+  <div class="chart-legend">
+    <div class="legend-item"><div class="legend-dot" style="background:rgba(226,75,74,0.7)"></div>支出</div>
+    <div class="legend-item"><div class="legend-dot" style="background:rgba(29,158,117,0.7)"></div>收入</div>
+  </div>
+  <div class="chart-wrap"><canvas id="monthChart" role="img" aria-label="月支出趨勢">月支出趨勢</canvas></div>
+</div>
+
+<div id="screen-receipt" class="screen">
+  <div class="page-header">掃收據</div>
+  <div id="upload-section">
+    <div class="upload-zone" onclick="document.getElementById('receipt-input').click()">
+      <input type="file" id="receipt-input" accept="image/*" capture="environment" onchange="handleReceiptUpload(event)">
+      <i class="ti ti-camera" style="font-size:40px;color:var(--text3);display:block;margin-bottom:12px"></i>
+      <div style="font-size:16px;font-weight:600;margin-bottom:6px">拍照或選擇圖片</div>
+      <div style="font-size:13px;color:var(--text2)">AI 自動辨識品項與金額</div>
+    </div>
+  </div>
+  <div id="receipt-img-wrap" class="receipt-img-wrap" style="display:none"><img id="receipt-img" src="" alt="收據"></div>
+  <div id="ai-status" style="display:none;text-align:center;padding:24px">
+    <div class="spinner"></div>
+    <div id="ai-msg" style="font-size:14px;color:var(--text2)">AI 辨識中...</div>
+  </div>
+  <div id="receipt-result" style="display:none">
+    <div class="form-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div style="font-size:15px;font-weight:600">辨識結果</div>
+        <button class="btn-add-item" style="width:auto;padding:6px 14px;margin:0;font-size:13px" onclick="addItemRow()"><i class="ti ti-plus"></i> 新增</button>
+      </div>
+      <div id="item-rows"></div>
+      <div class="items-total">
+        <span style="font-size:14px;color:var(--text2)">合計</span>
+        <span style="font-size:18px;font-weight:700" id="items-total">$0.00</span>
+      </div>
+    </div>
+    <div class="form-card">
+      <div style="font-size:15px;font-weight:600;margin-bottom:12px">儲存設定</div>
+      <div class="mode-toggle">
+        <div class="mode-btn active" id="mode-single" onclick="setMode('single')"><i class="ti ti-receipt"></i> 整筆記錄</div>
+        <div class="mode-btn" id="mode-items" onclick="setMode('items')"><i class="ti ti-list-details"></i> 逐項記錄</div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>日期</label><input type="date" id="r-date"></div>
+        <div class="form-group"><label>記帳人</label><select id="r-who"><option>Ash</option><option>Mathew</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>類別</label><select id="r-cat">
+          <option>Food / Groceries</option><option>Transportation</option><option>Rent</option>
+          <option>Daily necessities</option><option>Fuel</option><option>Entertainment</option>
+          <option>Phone</option><option>Others</option>
+        </select></div>
+        <div class="form-group"><label>商店</label><input type="text" id="r-store" placeholder="Woolworths"></div>
+      </div>
+      <button class="btn-submit" onclick="saveReceipt()">儲存記錄</button>
+    </div>
+    <div id="compare-section" style="display:none">
+      <div class="section-title">歷史比價參考</div>
+      <div id="compare-results"></div>
+    </div>
+  </div>
+</div>
+
+<div id="screen-add" class="screen">
+  <div class="page-header">新增記帳</div>
+  <div class="form-card">
+    <div class="btn-type">
+      <div class="type-btn active-exp" id="btn-exp" onclick="setType('expense')"><i class="ti ti-arrow-up-right"></i> 支出</div>
+      <div class="type-btn" id="btn-inc" onclick="setType('income')"><i class="ti ti-arrow-down-left"></i> 收入</div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>日期</label><input type="date" id="f-date"></div>
+      <div class="form-group"><label>記帳人</label><select id="f-who"><option>Ash</option><option>Mathew</option></select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>金額（AUD）</label><input type="number" id="f-amount" placeholder="0.00" step="0.01" inputmode="decimal"></div>
+      <div class="form-group"><label>類別</label><select id="f-cat">
+        <option>Food / Groceries</option><option>Transportation</option><option>Rent</option>
+        <option>Daily necessities</option><option>Fuel</option><option>Entertainment</option>
+        <option>Phone</option><option>Salary</option><option>Saving</option><option>Others</option>
+      </select></div>
+    </div>
+    <div class="form-group"><label>備註</label><input type="text" id="f-note" placeholder="例：ALDI 採購"></div>
+    <div class="form-group"><label>商店（選填）</label><input type="text" id="f-store" placeholder="ALDI / Woolworths / Coles..."></div>
+    <button class="btn-submit" onclick="addTx()">新增記錄</button>
+  </div>
+</div>
+
+<div id="screen-list" class="screen">
+  <div class="page-header">明細</div>
+  <div class="filter-row" id="filter-row"></div>
+  <div id="tx-list"></div>
+</div>
+
+<div id="screen-price" class="screen">
+  <div class="page-header">比價</div>
+  <div class="form-group" style="margin-bottom:14px">
+    <input type="text" id="price-search" placeholder="搜尋品項..." oninput="renderPriceDB()" style="width:100%;padding:11px 12px;font-size:15px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg2);color:var(--text)">
+  </div>
+  <div id="price-db-list"></div>
+  <div style="margin-top:20px;padding-top:16px;border-top:0.5px solid var(--border)">
+    <div class="section-title">省錢建議</div>
+    <div id="shopping-tips"></div>
+  </div>
+</div>
+
+<nav class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('overview')"><i class="ti ti-chart-pie"></i><span>總覽</span></button>
+  <button class="tab-btn" onclick="showTab('receipt')"><i class="ti ti-scan"></i><span>掃收據</span></button>
+  <button class="tab-btn" onclick="showTab('add')"><i class="ti ti-plus"></i><span>記帳</span></button>
+  <button class="tab-btn" onclick="showTab('list')"><i class="ti ti-list"></i><span>明細</span></button>
+  <button class="tab-btn" onclick="showTab('price')"><i class="ti ti-tag"></i><span>比價</span></button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const CAT_COLORS={'Food / Groceries':'#1D9E75','Transportation':'#185FA5','Rent':'#D85A30','Daily necessities':'#7F77DD','Fuel':'#BA7517','Entertainment':'#D4537E','Phone':'#888780','Salary':'#1D9E75','Saving':'#378ADD','Others':'#888780'};
+const CAT_ICONS={'Food / Groceries':'ti-tools-kitchen-2','Transportation':'ti-car','Rent':'ti-home','Daily necessities':'ti-shopping-bag','Fuel':'ti-gas-station','Entertainment':'ti-device-gamepad-2','Phone':'ti-device-mobile','Salary':'ti-briefcase','Saving':'ti-piggy-bank','Others':'ti-dots'};
+const MONTH_LABEL={'2026-02':'2月','2026-03':'3月','2026-04':'4月','2026-05':'5月'};
+const TWD=22.8;
+const fmt=n=>'$'+Math.abs(n).toFixed(2);
+const fmtTWD=n=>'NT$'+Math.round(Math.abs(n)*TWD).toLocaleString();
+
+const DEFAULT_DATA=[
+  ['2026-02-06','Mathew','Saving','初始存款',13000,0,''],
+  ['2026-02-06','Ash','Saving','初始存款',8710.21,0,''],
+  ['2026-02-06','Mathew','Saving','From mom',600,0,''],
+  ['2026-02-06','Ash','Saving','From mom',600,0,''],
+  ['2026-02-18','Ash','Transportation','Trip.com 行李寄存 Sydney',0,57,''],
+  ['2026-02-19','Mathew','Transportation','Bus to Melbourne',0,212,''],
+  ['2026-02-19','Mathew','Rent','Hostel for a day',0,134,''],
+  ['2026-02-19','Mathew','Food / Groceries',"McDonald's",0,62,"McDonald's"],
+  ['2026-02-19','Mathew','Transportation','2 Myki + add up',0,54,''],
+  ['2026-02-19','Ash','Food / Groceries','Coconut water Sydney',0,11.13,''],
+  ['2026-02-19','Mathew','Food / Groceries','Icecream Sydney',0,11,''],
+  ['2026-02-20','Mathew','Transportation','Transportation Sydney',0,22,''],
+  ['2026-02-20','Ash','Transportation','Transportation Sydney',0,22.25,''],
+  ['2026-02-20','Mathew','Food / Groceries','Sushi lunch Melbourne',0,36,''],
+  ['2026-02-20','Ash','Daily necessities','Hair dryer',0,69,''],
+  ['2026-02-20','Ash','Food / Groceries','Hostel Woolworths',0,25.63,'Woolworths'],
+  ['2026-02-20','Mathew','Food / Groceries','Hostel dinner',0,33,''],
+  ['2026-02-22','Ash','Entertainment','ebook',0,114.16,''],
+  ['2026-02-22','Ash','Daily necessities','Figma member',0,29.87,''],
+  ['2026-02-23','Ash','Daily necessities','Laundry',0,6,''],
+  ['2026-02-23','Ash','Food / Groceries','Lunch',0,22.40,''],
+  ['2026-02-23','Ash','Transportation','Trip.com 租車 4天',0,332.90,''],
+  ['2026-02-23','Mathew','Transportation','租車 4天（含押金）',0,610.04,''],
+  ['2026-02-24','Mathew','Food / Groceries','露營食材',0,134,''],
+  ['2026-02-24','Ash','Food / Groceries','露營食材',0,6,''],
+  ['2026-02-25','Ash','Rent','Airbnb',0,550,''],
+  ['2026-02-25','Ash','Food / Groceries','Groceries',0,45.80,''],
+  ['2026-02-26','Ash','Transportation','Car deposit（未成交）',0,500,''],
+  ['2026-02-26','Mathew','Food / Groceries','Vietnamese lunch',0,45,''],
+  ['2026-02-26','Mathew','Entertainment','HDMI cable',0,15,''],
+  ['2026-02-27','Mathew','Fuel','For renting car',0,70,''],
+  ['2026-02-27','Mathew','Salary','House cleaning',125,0,''],
+  ['2026-02-27','Ash','Salary','House cleaning',125,0,''],
+  ['2026-03-02','Mathew','Food / Groceries','Red Rooster',0,31,'Red Rooster'],
+  ['2026-03-02','Ash','Food / Groceries','ALDI groceries',0,24.10,'ALDI'],
+  ['2026-03-02','Mathew','Transportation','Toll fee',0,15,''],
+  ['2026-03-03','Ash','Food / Groceries','LUNE可頌',0,37.48,'LUNE'],
+  ['2026-03-03','Ash','Transportation','Myki儲值',0,30,''],
+  ['2026-03-04','Ash','Food / Groceries','亞洲超市零食',0,16,'亞洲超市'],
+  ['2026-03-04','Ash','Daily necessities','Telstra電話卡 65GB',0,17,'Telstra'],
+  ['2026-03-04','Ash','Food / Groceries','亞超飲料',0,7.10,'亞洲超市'],
+  ['2026-03-05','Mathew','Transportation','Renting deposit return',300,0,''],
+  ['2026-03-05','Ash','Daily necessities','隱形眼鏡保養液',0,5,''],
+  ['2026-03-05','Mathew','Entertainment','Camping chair',0,8,''],
+  ['2026-03-06','Mathew','Salary','House cleaning',146,0,''],
+  ['2026-03-06','Ash','Salary','House cleaning',113,0,''],
+  ['2026-03-06','Ash','Food / Groceries','亞超草莓',0,4,'亞洲超市'],
+  ['2026-03-06','Ash','Transportation','Myki儲值',0,5,''],
+  ['2026-03-06','Ash','Transportation','Vline Bendigo→Robinvale',0,8,''],
+  ['2026-03-07','Ash','Transportation','Myki儲值',0,10,''],
+  ['2026-03-09','Ash','Food / Groceries','KFC午餐',0,12.90,'KFC'],
+  ['2026-03-09','Ash','Food / Groceries','亞超',0,35,'亞洲超市'],
+  ['2026-03-09','Ash','Daily necessities','Euston剪刀',0,18,''],
+  ['2026-03-09','Mathew','Daily necessities','Euston剪刀',0,18,''],
+  ['2026-03-09','Ash','Rent','Euston rent×4d',0,76,''],
+  ['2026-03-09','Mathew','Rent','Euston rent×4d',0,76,''],
+  ['2026-03-09','Ash','Rent','Euston押金',0,100,''],
+  ['2026-03-09','Mathew','Rent','Euston押金',0,100,''],
+  ['2026-03-11','Ash','Daily necessities','Euston laundry',0,8,''],
+  ['2026-03-13','Ash','Food / Groceries','Euston IGA超市',0,73.78,'IGA'],
+  ['2026-03-16','Mathew','Salary','Euston薪資',230.57,0,''],
+  ['2026-03-16','Ash','Salary','Euston薪資',230.57,0,''],
+  ['2026-03-16','Ash','Rent','Euston rent×5d×2人',0,270,''],
+  ['2026-03-16','Ash','Transportation','Vline Euston→Southern Cross',0,22.95,''],
+  ['2026-03-17','Ash','Transportation','Myki儲值',0,5,''],
+  ['2026-03-17','Ash','Rent','Euston押金退回',200,0,''],
+  ['2026-03-18','Mathew','Transportation','Honda CRV購車',0,3750,''],
+  ['2026-03-18','Ash','Transportation','Honda CRV購車',0,3750,''],
+  ['2026-03-18','Mathew','Transportation','AAMI保險 1年',0,986,'AAMI'],
+  ['2026-03-18','Mathew','Daily necessities','Car bluetooth/USB',0,55,''],
+  ['2026-03-18','Mathew','Food / Groceries','Lunch at Woolies',0,19,'Woolworths'],
+  ['2026-03-18','Ash','Phone','Optus 25GB',0,21,'Optus'],
+  ['2026-03-20','Ash','Transportation','Honda CRV RWC+修車',0,905,''],
+  ['2026-03-20','Mathew','Transportation','Honda CRV RWC',0,100,''],
+  ['2026-03-20','Ash','Transportation','Car deposit退回',500,0,''],
+  ['2026-03-20','Ash','Fuel','Reddy Express 33.94L',0,81.42,'Reddy Express'],
+  ['2026-03-22','Ash','Daily necessities','牙膏/酒精噴霧',0,23.89,'Direct Chemist'],
+  ['2026-03-22','Ash','Food / Groceries','Woolworths',0,34.62,'Woolworths'],
+  ['2026-03-22','Ash','Salary','Euston薪資',299.63,0,''],
+  ['2026-03-22','Mathew','Salary','Euston薪資',299.63,0,''],
+  ['2026-03-24','Mathew','Food / Groceries','Woolworths',0,50.84,'Woolworths'],
+  ['2026-03-27','Mathew','Daily necessities','棉被/毛巾/枕頭',0,50,''],
+  ['2026-03-27','Ash','Daily necessities','棉被/毛巾/枕頭',0,50,''],
+  ['2026-03-28','Mathew','Rent','Pakenham押金',0,500,''],
+  ['2026-03-28','Ash','Rent','Pakenham押金',0,500,''],
+  ['2026-03-28','Mathew','Daily necessities','KMART',0,95.50,'KMART'],
+  ['2026-03-28','Mathew','Food / Groceries','Woolworths',0,35.75,'Woolworths'],
+  ['2026-03-28','Ash','Food / Groceries','KFC×2',0,25.40,'KFC'],
+  ['2026-03-30','Mathew','Food / Groceries','ALDI groceries',0,59.69,'ALDI'],
+  ['2026-03-30','Mathew','Food / Groceries','Starbox noodle&sushi',0,28,'Starbox'],
+  ['2026-03-30','Ash','Entertainment','Office Works膠帶',0,5.50,'Office Works'],
+  ['2026-04-01','Mathew','Others','ESM Envelope',0,5,''],
+  ['2026-04-01','Mathew','Others','Authorization Letter fee',0,33,''],
+  ['2026-04-01','Mathew','Food / Groceries','Pho Thin午餐',0,19.29,'Pho Thin'],
+  ['2026-04-01','Ash','Food / Groceries','Pho Thin午餐',0,19.29,'Pho Thin'],
+  ['2026-04-01','Ash','Food / Groceries','包店麵包',0,18,'包店'],
+  ['2026-04-02','Ash','Food / Groceries','QVM Corner Chicken',0,16,'QVM'],
+  ['2026-04-02','Ash','Food / Groceries','QVM American donuts',0,2,'QVM'],
+  ['2026-04-02','Ash','Food / Groceries','麥當勞冰炫風',0,5.35,"McDonald's"],
+  ['2026-04-02','Ash','Food / Groceries','Puzzle Coffee拿鐵',0,6,'Puzzle Coffee'],
+  ['2026-04-02','Ash','Food / Groceries','MR RHINO SUPERMARKET',0,30.45,'MR RHINO'],
+  ['2026-04-02','Mathew','Fuel','7-Eleven 23.79L',0,54.69,'7-Eleven'],
+  ['2026-04-02','Mathew','Food / Groceries','Chips×2',0,12,''],
+  ['2026-04-04','Mathew','Rent','房租',0,245,''],
+  ['2026-04-04','Ash','Rent','房租',0,55,''],
+  ['2026-04-04','Ash','Food / Groceries','ALDI groceries',0,63.96,'ALDI'],
+  ['2026-04-04','Ash','Food / Groceries','Kuya JJ',0,15.25,'Kuya JJ'],
+  ['2026-04-04','Ash','Food / Groceries','COLES groceries',0,23.60,'Coles'],
+  ['2026-04-06','Ash','Food / Groceries','KFC×2',0,14.90,'KFC'],
+  ['2026-04-07','Mathew','Food / Groceries','ALDI groceries',0,57.79,'ALDI'],
+  ['2026-04-10','Ash','Food / Groceries','工廠販賣機餅乾',0,3.05,''],
+  ['2026-04-11','Mathew','Rent','房租',0,150,''],
+  ['2026-04-11','Ash','Rent','房租',0,150,''],
+  ['2026-04-11','Ash','Food / Groceries','COLES groceries',0,54.69,'Coles'],
+  ['2026-04-13','Ash','Food / Groceries','ALDI groceries',0,40.68,'ALDI'],
+  ['2026-04-14','Ash','Food / Groceries','ALDI groceries',0,27.34,'ALDI'],
+  ['2026-04-15','Ash','Fuel','Liberty 35.93L',0,74.91,'Liberty'],
+  ['2026-04-15','Ash','Others','藥局痠痛貼布+虎標萬金油',0,21.48,''],
+  ['2026-04-16','Ash','Phone','Optus 25GB',0,39,'Optus'],
+  ['2026-04-16','Ash','Food / Groceries','COLES groceries',0,49.15,'Coles'],
+  ['2026-04-17','Ash','Salary',"O'Connor Beef payslip",922.86,0,''],
+  ['2026-04-18','Mathew','Rent','房租',0,150,''],
+  ['2026-04-18','Ash','Rent','房租',0,150,''],
+  ['2026-04-18','Ash','Food / Groceries','Hanaro mart關廟麵',0,8.80,'Hanaro Mart'],
+  ['2026-04-18','Ash','Daily necessities','KMart USB充電頭',0,9,'KMART'],
+  ['2026-04-18','Ash','Daily necessities','Chemist Warehouse魚油',0,28.89,'Chemist Warehouse'],
+  ['2026-04-18','Ash','Food / Groceries','TANG HUNG麻醬',0,4.69,'Tang Hung'],
+  ['2026-04-18','Ash','Others','吉伊卡哇吊飾×2',0,19.98,''],
+  ['2026-04-18','Ash','Food / Groceries','Isshin ramen bar×2',0,40.30,'Isshin Ramen'],
+  ['2026-04-18','Ash','Food / Groceries','HEY TEA開心果椰子',0,10.90,'HEY TEA'],
+  ['2026-04-18','Ash','Transportation','停車費',0,10,''],
+  ['2026-04-18','Ash','Entertainment','Makers&Shakers票×2',0,12,''],
+  ['2026-04-18','Ash','Food / Groceries','ALDI groceries',0,8.65,'ALDI'],
+  ['2026-04-19','Mathew','Fuel','Liberty 28.12L',0,55.54,'Liberty'],
+  ['2026-04-19','Ash','Food / Groceries','Kuya JJ老乾媽',0,5.10,'Kuya JJ'],
+  ['2026-04-19','Ash','Food / Groceries','ALDI groceries',0,24.24,'ALDI'],
+  ['2026-04-22','Ash','Food / Groceries','COLES groceries',0,44.90,'Coles'],
+  ['2026-04-23','Ash','Food / Groceries','Woolworths',0,41.75,'Woolworths'],
+  ['2026-04-24','Ash','Salary',"O'Connor Beef payslip",1174.62,0,''],
+  ['2026-04-25','Ash','Rent','房租',0,150,''],
+  ['2026-04-25','Mathew','Rent','房租',0,150,''],
+  ['2026-04-25','Ash','Daily necessities','Chemist Warehouse洗手乳',0,19.99,'Chemist Warehouse'],
+  ['2026-04-25','Ash','Daily necessities','KMART冬天衣服+杯子',0,109,'KMART'],
+  ['2026-04-25','Ash','Entertainment','Cotton:On酒精噴霧+濕紙巾',0,9,'Cotton:On'],
+  ['2026-04-25','Ash','Entertainment','Cotton:On卡片×3',0,19.98,'Cotton:On'],
+  ['2026-04-25','Ash','Food / Groceries',"LIN'S亞超",0,20.08,"Lin's Asian Grocery"],
+  ['2026-04-25','Ash','Food / Groceries','ALDI groceries',0,24.91,'ALDI'],
+  ['2026-04-26','Ash','Food / Groceries','South Melbourne Market壽司×4',0,46.51,'South Melbourne Market'],
+  ['2026-04-26','Ash','Food / Groceries','Teadrop飲料×2',0,12.20,'South Melbourne Market'],
+  ['2026-04-26','Ash','Others','Shakira生日禮物髮夾×2',0,42,''],
+  ['2026-04-26','Ash','Entertainment','復古拍貼機',0,8,'South Melbourne Market'],
+  ['2026-04-26','Ash','Entertainment','Conventry Bookstore卡片×4',0,35.15,'Conventry Bookstore'],
+  ['2026-04-28','Ash','Fuel','BP Pakenham 32.61L',0,58.01,'BP'],
+  ['2026-04-29','Mathew','Food / Groceries','ALDI groceries',0,32.78,'ALDI'],
+  ['2026-04-29','Mathew','Food / Groceries','COLES groceries',0,24.67,'Coles'],
+  ['2026-04-30','Ash','Food / Groceries','ALDI groceries',0,44.92,'ALDI'],
+  ['2026-05-01','Ash','Salary',"O'Connor Beef payslip",1171.38,0,''],
+  ['2026-05-02','Ash','Rent','房租',0,150,''],
+  ['2026-05-02','Mathew','Rent','房租',0,150,''],
+  ['2026-05-02','Ash','Food / Groceries','Pakenham亞超皮蛋+蒸餃',0,25.25,'Kuya JJ'],
+  ['2026-05-02','Mathew','Food / Groceries','COLES groceries',0,29.84,'Coles'],
+  ['2026-05-02','Mathew','Food / Groceries','ALDI groceries',0,31.25,'ALDI'],
+  ['2026-05-03','Ash','Food / Groceries','維媽午餐牛肉套餐',0,20.83,'維媽'],
+  ['2026-05-03','Ash','Food / Groceries','維媽漢堡',0,16,'維媽'],
+  ['2026-05-03','Ash','Food / Groceries','PIDAPIPO冰淇淋三球',0,11.50,'PIDAPIPO'],
+  ['2026-05-03','Ash','Daily necessities','Fitzroy超市熱水袋',0,9.89,''],
+  ['2026-05-05','Ash','Food / Groceries','COLES groceries',0,29.84,'Coles'],
+  ['2026-05-05','Mathew','Food / Groceries','ALDI groceries',0,40.27,'ALDI'],
+  ['2026-05-07','Ash','Food / Groceries',"O'Connor特價牛肉",0,171,"O'Connor Beef"],
+  ['2026-05-07','Ash','Others',"O'Connor老闆費用",100,0,''],
+  ['2026-05-07','Ash','Food / Groceries','COLES groceries',0,43.45,'Coles'],
+  ['2026-05-08','Ash','Salary',"O'Connor Beef payslip",1154.14,0,''],
+  ['2026-05-08','Mathew','Rent','房租',0,150,''],
+  ['2026-05-08','Ash','Rent','房租',0,150,''],
+  ['2026-05-08','Mathew','Food / Groceries','ALDI groceries',0,42.99,'ALDI'],
+  ['2026-05-10','Ash','Food / Groceries','ALDI groceries',0,76,'ALDI'],
+  ['2026-05-11','Ash','Food / Groceries','Pakenham亞超泡菜',0,7.50,'Kuya JJ'],
+  ['2026-05-11','Mathew','Food / Groceries','COLES groceries',0,22.65,'Coles'],
+  ['2026-05-13','Ash','Fuel','Liberty 37.86L',0,65.01,'Liberty'],
+  ['2026-05-13','Mathew','Food / Groceries','COLES groceries',0,31.13,'Coles'],
+  ['2026-05-14','Ash','Others','眼睛藥水',0,8.99,''],
+  ['2026-05-14','Mathew','Food / Groceries','COLES groceries',0,32.83,'Coles'],
+  ['2026-05-15','Ash','Daily necessities','Optus 25GB',0,39,'Optus'],
+  ['2026-05-15','Ash','Salary',"O'Connor Beef payslip",1177.26,0,''],
+  ['2026-05-15','Mathew','Rent','水電費',0,204,''],
+  ['2026-05-15','Ash','Rent','水電費',0,204,''],
+  ['2026-05-15','Ash','Food / Groceries',"麥當勞套餐×2",0,13.90,"McDonald's"],
+];
+
+const DEFAULT_PRICES=[
+  {item:'草莓',store:'亞洲超市',price:4.00,date:'2026-03-06'},
+  {item:'草莓',store:'Woolworths',price:5.50,date:'2026-03-22'},
+  {item:'牛奶 2L',store:'ALDI',price:2.49,date:'2026-04-04'},
+  {item:'牛奶 2L',store:'Woolworths',price:3.20,date:'2026-03-28'},
+  {item:'牛奶 2L',store:'Coles',price:3.00,date:'2026-04-11'},
+  {item:'雞蛋 12顆',store:'ALDI',price:5.49,date:'2026-04-13'},
+  {item:'雞蛋 12顆',store:'Woolworths',price:6.50,date:'2026-03-22'},
+  {item:'雞蛋 12顆',store:'Coles',price:6.00,date:'2026-04-11'},
+  {item:'麵包',store:'ALDI',price:2.99,date:'2026-04-14'},
+  {item:'麵包',store:'Woolworths',price:3.50,date:'2026-03-28'},
+  {item:'雞肉 1kg',store:'ALDI',price:8.99,date:'2026-04-07'},
+  {item:'雞肉 1kg',store:'Coles',price:10.50,date:'2026-05-02'},
+  {item:'雞肉 1kg',store:'Woolworths',price:10.00,date:'2026-04-23'},
+];
+
+// localStorage
+function loadData(){
+  try{
+    const saved=localStorage.getItem('ash_txdata');
+    if(saved)return JSON.parse(saved);
+  }catch(e){}
+  return DEFAULT_DATA.map(r=>({date:r[0],who:r[1],cat:r[2],note:r[3],income:r[4],expense:r[5],store:r[6]}));
+}
+function saveData(){
+  try{localStorage.setItem('ash_txdata',JSON.stringify(txData))}catch(e){}
+}
+function loadPrices(){
+  try{
+    const saved=localStorage.getItem('ash_pricedb');
+    if(saved)return JSON.parse(saved);
+  }catch(e){}
+  return [...DEFAULT_PRICES];
+}
+function savePrices(){
+  try{localStorage.setItem('ash_pricedb',JSON.stringify(priceDB))}catch(e){}
+}
+
+let txData=loadData();
+let priceDB=loadPrices();
+let addType='expense',listFilter='All',receiptMode='single',receiptItems=[],monthChart=null,selectedMonth='All';
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2000);
+}
+
+function showTab(t){
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',['overview','receipt','add','list','price'][i]===t));
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+t).classList.add('active');
+  if(t==='overview')renderOverview();
+  if(t==='list')renderList();
+  if(t==='price')renderPriceDB();
+}
+
+function setType(t){
+  addType=t;
+  document.getElementById('btn-exp').className='type-btn'+(t==='expense'?' active-exp':'');
+  document.getElementById('btn-inc').className='type-btn'+(t==='income'?' active-inc':'');
+}
+function setMode(m){
+  receiptMode=m;
+  document.getElementById('mode-single').className='mode-btn'+(m==='single'?' active':'');
+  document.getElementById('mode-items').className='mode-btn'+(m==='items'?' active':'');
+}
+
+function getMonths(){return[...new Set(txData.map(t=>t.date.slice(0,7)))].sort()}
+function filteredByMonth(data){return selectedMonth==='All'?data:data.filter(t=>t.date.startsWith(selectedMonth))}
+
+function renderOverview(){
+  const months=getMonths();
+  document.getElementById('month-tabs').innerHTML=
+    ['All',...months].map(m=>`<button class="month-tab${selectedMonth===m?' active':''}" onclick="selectedMonth='${m}';renderOverview()">${m==='All'?'全部':MONTH_LABEL[m]||m}</button>`).join('');
+  document.getElementById('overview-month-label').textContent=selectedMonth==='All'?'':MONTH_LABEL[selectedMonth]||selectedMonth;
+
+  const data=filteredByMonth(txData);
+  const calc=who=>{
+    const d=data.filter(t=>t.who===who);
+    const inc=d.reduce((s,t)=>s+t.income,0);
+    const exp=d.reduce((s,t)=>s+t.expense,0);
+    return{inc,exp,net:inc-exp};
+  };
+  const ash=calc('Ash'),math=calc('Mathew');
+
+  const buildCard=(who,stats,whoClass)=>`
+    <span class="who ${whoClass}">${who}</span>
+    <div class="stat-line">
+      <span class="stat-label">收入</span>
+      <div><div class="stat-val col-green">${fmt(stats.inc)}</div><span class="stat-twd">${fmtTWD(stats.inc)}</span></div>
+    </div>
+    <div class="stat-line">
+      <span class="stat-label">支出</span>
+      <div><div class="stat-val col-red">${fmt(stats.exp)}</div><span class="stat-twd">${fmtTWD(stats.exp)}</span></div>
+    </div>
+    <div class="net-line">
+      <span class="net-label">結餘</span>
+      <div><div class="net-val ${stats.net>=0?'col-green':'col-red'}">${stats.net<0?'-':''}${fmt(stats.net)}</div><span class="stat-twd">${fmtTWD(stats.net)}</span></div>
+    </div>`;
+  document.getElementById('ash-card').innerHTML=buildCard('Ash',ash,'who-ash');
+  document.getElementById('mathew-card').innerHTML=buildCard('Mathew',math,'who-mathew');
+
+  const catExp={};
+  data.forEach(t=>{if(t.expense>0&&t.cat!=='Saving')catExp[t.cat]=(catExp[t.cat]||0)+t.expense});
+  const sorted=Object.entries(catExp).sort((a,b)=>b[1]-a[1]);
+  const maxVal=sorted[0]?.[1]||1;
+  document.getElementById('cat-bars').innerHTML=sorted.slice(0,7).map(([cat,val])=>`
+    <div class="cat-bar">
+      <div class="cat-bar-header">
+        <span><i class="ti ${CAT_ICONS[cat]||'ti-tag'}" style="margin-right:5px;font-size:14px"></i>${cat}</span>
+        <span style="color:var(--text2)">${fmt(val)}</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(val/maxVal*100).toFixed(1)}%;background:${CAT_COLORS[cat]||'#888'}"></div></div>
+    </div>`).join('');
+
+  const allM=getMonths();
+  const mData={};
+  txData.forEach(t=>{const m=t.date.slice(0,7);if(!mData[m])mData[m]={inc:0,exp:0};mData[m].inc+=t.income;mData[m].exp+=t.expense});
+  if(monthChart){monthChart.destroy();monthChart=null}
+  const isDark=matchMedia('(prefers-color-scheme: dark)').matches;
+  monthChart=new Chart(document.getElementById('monthChart').getContext('2d'),{
+    type:'bar',
+    data:{labels:allM.map(m=>MONTH_LABEL[m]||m),datasets:[
+      {label:'支出',data:allM.map(m=>parseFloat((mData[m]?.exp||0).toFixed(2))),backgroundColor:'rgba(226,75,74,0.7)',borderRadius:4},
+      {label:'收入',data:allM.map(m=>parseFloat((mData[m]?.inc||0).toFixed(2))),backgroundColor:'rgba(29,158,117,0.7)',borderRadius:4}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{
+        x:{ticks:{color:isDark?'#a0a09c':'#6b6b68',font:{size:13},autoSkip:false},grid:{display:false}},
+        y:{ticks:{callback:v=>'$'+v.toLocaleString(),color:isDark?'#a0a09c':'#6b6b68',font:{size:11}},grid:{color:isDark?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.06)'}}
+      }}
+  });
+}
+
+function handleReceiptUpload(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    document.getElementById('receipt-img').src=ev.target.result;
+    document.getElementById('receipt-img-wrap').style.display='flex';
+    document.getElementById('ai-status').style.display='block';
+    document.getElementById('receipt-result').style.display='none';
+    document.getElementById('upload-section').style.display='none';
+    analyzeReceipt(ev.target.result,file.type||'image/jpeg');
+  };
+  reader.readAsDataURL(file);
+}
+async function analyzeReceipt(dataUrl,mimeType){
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:[
+        {type:'image',source:{type:'base64',media_type:mimeType,data:dataUrl.split(',')[1]}},
+        {type:'text',text:'辨識這張收據的品項和金額（AUD）。只回傳JSON，不要其他文字：{"store":"商店名稱或空字串","items":[{"name":"品項名稱","price":金額數字}]}'}
+      ]}]})
+    });
+    const data=await res.json();
+    const text=data.content?.find(b=>b.type==='text')?.text||'{}';
+    let parsed;try{parsed=JSON.parse(text.replace(/```json|```/g,'').trim())}catch{parsed={store:'',items:[]}}
+    showReceiptResult(parsed);
+  }catch{
+    document.getElementById('ai-msg').textContent='辨識失敗，請手動輸入';
+    setTimeout(()=>showReceiptResult({store:'',items:[{name:'',price:0}]}),1200);
+  }
+}
+function showReceiptResult(parsed){
+  document.getElementById('ai-status').style.display='none';
+  document.getElementById('receipt-result').style.display='block';
+  if(parsed.store)document.getElementById('r-store').value=parsed.store;
+  receiptItems=parsed.items?.length?parsed.items:[{name:'',price:0}];
+  renderItemRows();
+  document.getElementById('r-date').value=new Date().toISOString().slice(0,10);
+  showComparePreview();
+}
+function renderItemRows(){
+  document.getElementById('item-rows').innerHTML=receiptItems.map((it,i)=>`
+    <div class="item-row">
+      <input class="item-name" value="${it.name}" placeholder="品項名稱" oninput="receiptItems[${i}].name=this.value;showComparePreview()">
+      <input class="item-price" type="number" step="0.01" value="${it.price||''}" placeholder="0.00" oninput="receiptItems[${i}].price=parseFloat(this.value)||0;updateTotal()" inputmode="decimal">
+      <button class="del-btn" onclick="receiptItems.splice(${i},1);renderItemRows();showComparePreview()" aria-label="刪除"><i class="ti ti-x"></i></button>
+    </div>`).join('');
+  updateTotal();
+}
+function addItemRow(){receiptItems.push({name:'',price:0});renderItemRows()}
+function updateTotal(){document.getElementById('items-total').textContent=fmt(receiptItems.reduce((s,it)=>s+(parseFloat(it.price)||0),0))}
+function showComparePreview(){
+  const names=receiptItems.map(it=>it.name.trim().toLowerCase()).filter(Boolean);
+  const matches=priceDB.filter(p=>names.some(n=>p.item.toLowerCase().includes(n)||n.includes(p.item.toLowerCase())));
+  const sec=document.getElementById('compare-section');
+  if(!matches.length){sec.style.display='none';return}
+  sec.style.display='block';
+  const grouped={};matches.forEach(p=>{if(!grouped[p.item])grouped[p.item]=[];grouped[p.item].push(p)});
+  document.getElementById('compare-results').innerHTML=Object.entries(grouped).map(([item,records])=>{
+    const sorted=[...records].sort((a,b)=>a.price-b.price);const min=sorted[0].price;
+    return`<div class="price-card"><div class="price-card-title">${item}</div>
+      ${sorted.map(r=>`<div class="store-row"><span class="store-name">${r.store}</span>
+        <span class="store-price ${r.price===min?'col-green':''}">${fmt(r.price)}${r.price===min?'<span class="badge badge-cheap">最便宜</span>':r.price===sorted[sorted.length-1].price&&sorted.length>1?'<span class="badge badge-exp">較貴</span>':''}</span>
+      </div>`).join('')}</div>`;
+  }).join('');
+}
+function saveReceipt(){
+  const date=document.getElementById('r-date').value,who=document.getElementById('r-who').value,cat=document.getElementById('r-cat').value,store=document.getElementById('r-store').value;
+  if(!date){showToast('請選擇日期');return}
+  if(receiptMode==='single'){
+    const total=receiptItems.reduce((s,it)=>s+(parseFloat(it.price)||0),0);
+    txData.push({date,who,cat,note:store||cat,income:0,expense:parseFloat(total.toFixed(2)),store});
+  }else{
+    receiptItems.forEach(it=>{if(it.name||it.price)txData.push({date,who,cat,note:it.name||cat,income:0,expense:parseFloat((it.price||0).toFixed(2)),store})});
+  }
+  receiptItems.forEach(it=>{
+    if(it.name&&it.price&&store){const ex=priceDB.find(p=>p.item===it.name&&p.store===store);if(ex){ex.price=it.price;ex.date=date}else priceDB.push({item:it.name,store,price:it.price,date})}
+  });
+  txData.sort((a,b)=>b.date.localeCompare(a.date));
+  saveData();savePrices();
+  document.getElementById('receipt-result').style.display='none';
+  document.getElementById('receipt-img-wrap').style.display='none';
+  document.getElementById('upload-section').style.display='block';
+  document.getElementById('receipt-input').value='';
+  document.getElementById('r-store').value='';
+  showToast('已儲存！');showTab('list');
+}
+
+function addTx(){
+  const date=document.getElementById('f-date').value,who=document.getElementById('f-who').value,cat=document.getElementById('f-cat').value,note=document.getElementById('f-note').value||cat,store=document.getElementById('f-store').value,amount=parseFloat(document.getElementById('f-amount').value)||0;
+  if(!date||!amount){showToast('請填入日期與金額');return}
+  txData.push({date,who,cat,note,income:addType==='income'?amount:0,expense:addType==='expense'?amount:0,store});
+  txData.sort((a,b)=>b.date.localeCompare(a.date));
+  saveData();
+  ['f-amount','f-note','f-store'].forEach(id=>document.getElementById(id).value='');
+  showToast('已新增！');showTab('list');
+}
+
+function renderList(){
+  const cats=['All','Ash','Mathew','Food / Groceries','Transportation','Rent','Salary','Fuel'];
+  const labels={'Food / Groceries':'飲食','Transportation':'交通','Rent':'房租','Salary':'薪資','Fuel':'油費'};
+  document.getElementById('filter-row').innerHTML=cats.map(c=>`<button class="filter-btn${listFilter===c?' active':''}" onclick="listFilter='${c}';renderList()">${labels[c]||c}</button>`).join('');
+  let filtered=txData;
+  if(listFilter==='Ash')filtered=txData.filter(t=>t.who==='Ash');
+  else if(listFilter==='Mathew')filtered=txData.filter(t=>t.who==='Mathew');
+  else if(listFilter!=='All')filtered=txData.filter(t=>t.cat===listFilter);
+  const sorted=[...filtered].sort((a,b)=>b.date.localeCompare(a.date));
+  document.getElementById('tx-list').innerHTML=sorted.length?sorted.map(t=>{
+    const isInc=t.income>0;const amt=isInc?t.income:t.expense;
+    return`<div class="tx-item">
+      <div class="tx-icon" style="background:${CAT_COLORS[t.cat]||'#888'}22"><i class="ti ${CAT_ICONS[t.cat]||'ti-tag'}" style="color:${CAT_COLORS[t.cat]||'#888'}"></i></div>
+      <div class="tx-info">
+        <div class="tx-name">${t.note}${t.store?` <span style="font-size:10px;color:var(--text3)">@ ${t.store}</span>`:''}</div>
+        <div class="tx-meta">${t.date.slice(5).replace('-','/')} <span class="who ${t.who==='Ash'?'who-ash':'who-mathew'}">${t.who}</span> ${t.cat}</div>
+      </div>
+      <div class="tx-amount">
+        <div class="tx-aud ${isInc?'col-green':''}">${isInc?'+':'-'}${fmt(amt)}</div>
+        <div class="tx-twd">${isInc?'+':'-'}NT$${Math.round(amt*TWD).toLocaleString()}</div>
+      </div>
+    </div>`;
+  }).join(''):`<div class="empty-state"><i class="ti ti-inbox"></i>沒有符合記錄</div>`;
+}
+
+function renderPriceDB(){
+  const q=(document.getElementById('price-search')?.value||'').toLowerCase();
+  const items={};
+  priceDB.forEach(p=>{if(q&&!p.item.toLowerCase().includes(q)&&!p.store.toLowerCase().includes(q))return;if(!items[p.item])items[p.item]=[];items[p.item].push(p)});
+  const list=document.getElementById('price-db-list');
+  if(!Object.keys(items).length){list.innerHTML='<div class="empty-state"><i class="ti ti-tag"></i>上傳收據後自動累積比價資料</div>';return}
+  list.innerHTML=Object.entries(items).map(([item,records])=>{
+    const sorted=[...records].sort((a,b)=>a.price-b.price);const saving=sorted.length>1?sorted[sorted.length-1].price-sorted[0].price:0;
+    return`<div class="price-card">
+      <div class="price-card-title"><span>${item}</span>${saving>0?`<span class="saving-badge">最多省 ${fmt(saving)}</span>`:''}</div>
+      ${sorted.map(r=>`<div class="store-row">
+        <span class="store-name"><i class="ti ti-building-store" style="font-size:13px;margin-right:4px"></i>${r.store} <span style="color:var(--text3);font-size:11px">${r.date.slice(5).replace('-','/')}</span></span>
+        <span class="store-price ${r.price===sorted[0].price?'col-green':''}">${fmt(r.price)}${r.price===sorted[0].price?'<span class="badge badge-cheap">最便宜</span>':r.price===sorted[sorted.length-1].price&&sorted.length>1?'<span class="badge badge-exp">較貴</span>':''}</span>
+      </div>`).join('')}
+    </div>`;
+  }).join('');
+  const savings=Object.entries(items).filter(([,r])=>r.length>1).map(([item,records])=>{const sorted=[...records].sort((a,b)=>a.price-b.price);return{item,cheap:sorted[0].store,saving:sorted[sorted.length-1].price-sorted[0].price}}).filter(s=>s.saving>0.01).sort((a,b)=>b.saving-a.saving);
+  document.getElementById('shopping-tips').innerHTML=savings.length?savings.map(s=>`<div class="tip-row"><i class="ti ti-bulb" style="font-size:20px;color:var(--amber);flex-shrink:0"></i><div class="tip-text">買 <strong>${s.item}</strong> 選 <strong>${s.cheap}</strong>，比最貴省 <span class="col-green" style="font-weight:700">${fmt(s.saving)}</span></div></div>`).join(''):'<div style="font-size:13px;color:var(--text3);padding:12px 0">上傳更多收據後這裡會顯示建議</div>';
+}
+
+document.getElementById('f-date').value=new Date().toISOString().slice(0,10);
+document.getElementById('r-date').value=new Date().toISOString().slice(0,10);
+renderOverview();
+</script>
+</body>
+</html>
